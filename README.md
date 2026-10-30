@@ -5,7 +5,7 @@ GitHub Action to download FFXI DAT files from R2. Resolves file patterns against
 ## Usage
 
 ```yaml
-- uses: sruon/ffxi-fetch-action@v1
+- uses: ffxi-dev/ffxi-fetch-action@v1
   id: ffxi
   with:
     files: |
@@ -22,7 +22,7 @@ GitHub Action to download FFXI DAT files from R2. Resolves file patterns against
 ## File list from a file
 
 ```yaml
-- uses: sruon/ffxi-fetch-action@v1
+- uses: ffxi-dev/ffxi-fetch-action@v1
   with:
     files-from: .ffxi-files
   env:
@@ -53,7 +53,7 @@ ROM/0/69.DAT
 ## Pinning a version
 
 ```yaml
-- uses: sruon/ffxi-fetch-action@v1
+- uses: ffxi-dev/ffxi-fetch-action@v1
   with:
     version: "30260304_1"
     files: ROM/306/61.DAT
