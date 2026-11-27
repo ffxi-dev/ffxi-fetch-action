@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Download files from B2 using the plan written by resolve.py."""
 
+import hashlib
 import json
 import os
 import subprocess
@@ -38,17 +39,30 @@ def get_thread_s3():
     return _thread_local.s3
 
 
-def download_file(key, output_path):
+def check(path, md5, size):
+    """Raise, and remove the file, unless it is the one the manifest names."""
+    got_size = path.stat().st_size
+    h = hashlib.md5()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    if h.hexdigest() != md5 or got_size != size:
+        path.unlink()
+        raise ValueError(f"got md5 {h.hexdigest()}, {got_size} bytes; the manifest says {md5}, {size} bytes")
+
+
+def download_file(entry, output_path):
     s3 = get_thread_s3()
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.NamedTemporaryFile(dir=output_path.parent, suffix=".zst", delete=False) as tmp:
         tmp_path = Path(tmp.name)
     try:
-        s3.download_file(BUCKET, key, str(tmp_path))
+        s3.download_file(BUCKET, entry["key"], str(tmp_path))
         subprocess.run(["zstd", "-d", "-f", str(tmp_path), "-o", str(output_path)],
                        check=True, capture_output=True)
     finally:
         tmp_path.unlink(missing_ok=True)
+    check(output_path, entry["md5"], entry["size"])
 
 
 def main():
@@ -68,7 +82,7 @@ def main():
     lock = threading.Lock()
 
     def do_download(entry):
-        download_file(entry["key"], output_dir / entry["path"])
+        download_file(entry, output_dir / entry["path"])
         return entry["path"]
 
     with ThreadPoolExecutor(max_workers=10) as pool:
