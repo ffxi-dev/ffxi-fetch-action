@@ -93,7 +93,8 @@ def main():
 
     print(f"Resolved {len(resolved)} files")
 
-    filehash = hashlib.sha256("\n".join(sorted(resolved.keys())).encode()).hexdigest()[:16]
+    # Keyed on each file's content, not only its path: patch can change what a version holds at a path.
+    filehash = hashlib.sha256("".join(f"{p} {e['md5']}\n" for p, e in sorted(resolved.items())).encode()).hexdigest()[:16]
 
     set_output("version", actual_version)
     set_output("count", str(len(resolved)))
@@ -102,7 +103,7 @@ def main():
     # Write download plan for download.py
     plan_dir = os.environ.get("RUNNER_TEMP", "/tmp")
     plan_path = os.path.join(plan_dir, "ffxi-download-plan.json")
-    plan = [{"path": fp, "key": entry["key"]} for fp, entry in sorted(resolved.items())]
+    plan = [{"path": fp, "key": entry["key"], "md5": entry["md5"], "size": entry["size"]} for fp, entry in sorted(resolved.items())]
     with open(plan_path, "w") as f:
         json.dump(plan, f)
 
